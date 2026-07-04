@@ -1,0 +1,272 @@
+{
+  "_credit": {
+    "method_name": "The \"Gow Method\" \u2014 Brisket Cook & Hold Tenderness Model",
+    "author": "Steve Gow",
+    "source": "Smoke Trails BBQ",
+    "article_url": "https://smoketrailsbbq.com/brisket-holding-masterclass-and-tenderness-model/",
+    "spreadsheet_file": "Holding-chart-with-Calculator-V3-April-30-2026.xlsx",
+    "note": "This is an unofficial fan tribute. All model numbers are transcribed directly from Steve Gow's published spreadsheet and blog post. Please visit the article for the full writeup, and check out Smoke Trails BBQ's rubs."
+  },
+  "rendering_rates": [
+    {
+      "temp_f": 135,
+      "percent_per_hour": 0
+    },
+    {
+      "temp_f": 140,
+      "percent_per_hour": 1
+    },
+    {
+      "temp_f": 150,
+      "percent_per_hour": 2
+    },
+    {
+      "temp_f": 160,
+      "percent_per_hour": 3
+    },
+    {
+      "temp_f": 170,
+      "percent_per_hour": 5
+    },
+    {
+      "temp_f": 180,
+      "percent_per_hour": 9
+    },
+    {
+      "temp_f": 190,
+      "percent_per_hour": 18
+    },
+    {
+      "temp_f": 195,
+      "percent_per_hour": 25
+    },
+    {
+      "temp_f": 200,
+      "percent_per_hour": 35
+    },
+    {
+      "temp_f": 205,
+      "percent_per_hour": 55
+    },
+    {
+      "temp_f": 210,
+      "percent_per_hour": 75
+    }
+  ],
+  "texture_bands": [
+    {
+      "max_percent": 80,
+      "label": "Underdone"
+    },
+    {
+      "max_percent": 95,
+      "label": "Slightly Underdone"
+    },
+    {
+      "max_percent": 110,
+      "label": "PERFECTLY TENDER"
+    },
+    {
+      "max_percent": 120,
+      "label": "Slightly Over"
+    },
+    {
+      "max_percent": null,
+      "label": "Overdone"
+    }
+  ],
+  "target_range": {
+    "min_percent": 95,
+    "max_percent": 110
+  },
+  "food_safety_note": "Use proper hot-hold practices. Do not let internal temperature drop below 135\u00b0F.",
+  "confirmed_methods": [
+    {
+      "hours_on_smoker_plus_minus_2": 12,
+      "pull_temp_f": 195,
+      "pull_texture": "Tight",
+      "rest_before_hold": "No",
+      "hold_temp_f": 150,
+      "hold_time_hours": 18
+    },
+    {
+      "hours_on_smoker_plus_minus_2": 12,
+      "pull_temp_f": 203,
+      "pull_texture": "Probe Tender",
+      "rest_before_hold": "Yes",
+      "hold_temp_f": "135 to 140",
+      "hold_time_hours": "2 to 24"
+    },
+    {
+      "hours_on_smoker_plus_minus_2": 12,
+      "pull_temp_f": 190,
+      "pull_texture": "Tight",
+      "rest_before_hold": "No",
+      "hold_temp_f": 160,
+      "hold_time_hours": 12
+    },
+    {
+      "hours_on_smoker_plus_minus_2": 10,
+      "pull_temp_f": 170,
+      "pull_texture": "Tight",
+      "rest_before_hold": "No",
+      "hold_temp_f": 170,
+      "hold_time_hours": 18
+    }
+  ],
+  "standard_cooldown_patterns": [
+    {
+      "id": "pull_195_hold_150_oven",
+      "description": "Standard temp decline from a 195\u00b0F pull straight into a 150\u00b0F holding oven.",
+      "quote": "Standard temp decline from 195 internal -> straight into holding oven at 150 is 1 hr at 190, 1 hr at 180, 1 hr at 170, 1 hr at 160. Then remaining hours stabilize at 150.",
+      "zone_hours": [
+        {
+          "temp_f": 190,
+          "hours": 1
+        },
+        {
+          "temp_f": 180,
+          "hours": 1
+        },
+        {
+          "temp_f": 170,
+          "hours": 1
+        },
+        {
+          "temp_f": 160,
+          "hours": 1
+        }
+      ],
+      "then": "remaining hold hours stabilize at the hold temp (150F)"
+    },
+    {
+      "id": "pull_205plus_counter_rest",
+      "description": "Rough approximation for a ~2 hour counter rest after pulling at 205F+.",
+      "quote": "Standard temp decline from 205+ to 140 on the counter (counter rest) is 2 hours. So enter 1 hr at 170 and 1 hr at 150 for a rough approximation if resting down on counter.",
+      "zone_hours": [
+        {
+          "temp_f": 170,
+          "hours": 1
+        },
+        {
+          "temp_f": 150,
+          "hours": 1
+        }
+      ],
+      "then": null
+    }
+  ],
+  "documented_case_studies": [
+    {
+      "id": "jacks_190_pull_160_hold",
+      "description": "12 hr cook to 190F pull, then 12 hr hold at 160F -- exact zone-by-zone breakdown as Steve Gow described it in the article comments (May 21, 2026) replying to a reader named Jack.",
+      "cook_zone_hours": [
+        {
+          "temp_f": 140,
+          "hours": 1
+        },
+        {
+          "temp_f": 150,
+          "hours": 1
+        },
+        {
+          "temp_f": 160,
+          "hours": 1
+        },
+        {
+          "temp_f": 170,
+          "hours": 2
+        },
+        {
+          "temp_f": 180,
+          "hours": 1
+        },
+        {
+          "temp_f": 190,
+          "hours": 1
+        }
+      ],
+      "hold_zone_hours": [
+        {
+          "temp_f": 190,
+          "hours": 1
+        },
+        {
+          "temp_f": 180,
+          "hours": 1
+        },
+        {
+          "temp_f": 170,
+          "hours": 1
+        },
+        {
+          "temp_f": 160,
+          "hours": 10
+        }
+      ],
+      "expected_total_percent": 105,
+      "expected_texture": "PERFECTLY TENDER"
+    }
+  ],
+  "worked_example": {
+    "description": "Example: 195\u00b0F pull + 150\u00b0F hold (from the calculator sheet, D29)",
+    "cook_zone_hours": [
+      {
+        "temp_f": 140,
+        "hours": 1
+      },
+      {
+        "temp_f": 150,
+        "hours": 1
+      },
+      {
+        "temp_f": 160,
+        "hours": 1
+      },
+      {
+        "temp_f": 170,
+        "hours": 1
+      },
+      {
+        "temp_f": 180,
+        "hours": 1
+      },
+      {
+        "temp_f": 190,
+        "hours": 1
+      },
+      {
+        "temp_f": 195,
+        "hours": 0.5
+      }
+    ],
+    "hold_zone_hours": [
+      {
+        "temp_f": 190,
+        "hours": 1
+      },
+      {
+        "temp_f": 180,
+        "hours": 1
+      },
+      {
+        "temp_f": 170,
+        "hours": 1
+      },
+      {
+        "temp_f": 160,
+        "hours": 1
+      },
+      {
+        "temp_f": 150,
+        "hours": 1
+      },
+      {
+        "temp_f": 140,
+        "hours": 14
+      }
+    ],
+    "expected_total_percent": 101.5,
+    "expected_texture": "PERFECTLY TENDER"
+  }
+}

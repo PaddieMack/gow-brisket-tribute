@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>The Gow Method — Brisket Cook &amp; Hold Tribute</title>
+<meta name="description" content="An unofficial fan tribute to Steve Gow's Brisket Cook & Hold Tenderness Model, with an interactive calculator and an Ask Steve chatbot." />
+<link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <p class="eyebrow">An unofficial fan tribute to</p>
+      <h1>The Gow Method</h1>
+      <p class="subtitle">Brisket "Cook &amp; Hold" Tenderness Model</p>
+      <p class="credit-line">
+        Created by <strong>Steve Gow</strong> of
+        <a href="https://smoketrailsbbq.com/" target="_blank" rel="noopener">Smoke Trails BBQ</a>
+        — read the
+        <a href="https://smoketrailsbbq.com/brisket-holding-masterclass-and-tenderness-model/" target="_blank" rel="noopener">original article</a>
+        or watch
+        <a href="https://www.youtube.com/watch?v=lplpPCU5UNQ&t=1203s" target="_blank" rel="noopener">the video</a>.
+      </p>
+    </div>
+  </header>
+
+  <nav class="tabs wrap" role="tablist">
+    <button class="tab-btn is-active" data-tab="calculator" role="tab" aria-selected="true">Calculator</button>
+    <button class="tab-btn" data-tab="chat" role="tab" aria-selected="false">Ask Steve</button>
+    <button class="tab-btn" data-tab="about" role="tab" aria-selected="false">About</button>
+  </nav>
+
+  <main class="wrap">
+
+    <!-- ===================== CALCULATOR TAB ===================== -->
+    <section id="tab-calculator" class="tab-panel is-active">
+
+      <div class="panel">
+        <div class="panel-row space-between">
+          <div>
+            <h2>Cook &amp; Hold Calculator</h2>
+            <p class="muted">Enter every temperature zone your brisket spent time in — cook <em>and</em> hold combined.</p>
+          </div>
+          <div class="mode-toggle" role="radiogroup" aria-label="Calculation mode">
+            <label><input type="radio" name="mode" value="zone" checked /> Classic zones</label>
+            <label><input type="radio" name="mode" value="interpolated" /> Smooth (interpolated)</label>
+          </div>
+        </div>
+
+        <div class="preset-row">
+          <span class="muted">Quick load:</span>
+          <button class="btn-chip" id="preset-worked-example">Spreadsheet example (195°→150°)</button>
+          <button class="btn-chip" id="preset-case-study">Jack's case study (190°→160°)</button>
+          <button class="btn-chip" id="preset-clear">Clear all</button>
+        </div>
+
+        <div id="zone-rows" class="zone-rows"></div>
+
+        <button id="add-zone" class="btn-secondary" type="button">+ Add temperature zone</button>
+
+        <div class="result-panel">
+          <div class="result-big">
+            <span id="result-percent">0%</span>
+            <span id="result-texture" class="texture-pill">Underdone</span>
+          </div>
+          <div class="result-meta">
+            <span id="result-remaining"></span>
+            <span class="target-reminder">Target range: 95%–110%</span>
+          </div>
+        </div>
+
+        <canvas id="rendering-chart" height="90"></canvas>
+
+        <p class="safety-note" id="safety-note"></p>
+      </div>
+
+      <div class="panel">
+        <h2>Reference material</h2>
+        <div class="grid-2">
+          <div>
+            <h3>Rendering rate table</h3>
+            <table class="rate-table" id="rate-table"></table>
+          </div>
+          <div>
+            <h3>Steve's confirmed methods</h3>
+            <ul id="confirmed-methods-list" class="confirmed-list"></ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== CHAT TAB ===================== -->
+    <section id="tab-chat" class="tab-panel">
+      <div class="panel chat-panel">
+        <div class="panel-row space-between">
+          <div>
+            <h2>Ask Steve</h2>
+            <p class="muted">A tribute chatbot grounded in the real Cook &amp; Hold model. Not actually Steve Gow.</p>
+          </div>
+          <div class="ai-mode-box">
+            <button id="enable-ai-mode" class="btn-secondary" type="button">Enable AI Mode (open-source LLM, runs in your browser)</button>
+            <select id="ai-model-select">
+              <option value="SmolLM2-360M-Instruct-q4f16_1-MLC">SmolLM2 360M (smallest, ~380MB)</option>
+              <option value="Llama-3.2-1B-Instruct-q4f16_1-MLC" selected>Llama 3.2 1B (balanced, ~880MB)</option>
+              <option value="Qwen2.5-1.5B-Instruct-q4f16_1-MLC">Qwen2.5 1.5B (better quality, ~1.3GB)</option>
+            </select>
+            <div id="ai-mode-status" class="muted small"></div>
+          </div>
+        </div>
+
+        <div id="chat-log" class="chat-log" aria-live="polite"></div>
+
+        <form id="chat-form" class="chat-form">
+          <input id="chat-input" type="text" autocomplete="off"
+                 placeholder="e.g. I pulled at 195 and held at 150 for 14 hours, is it done?" />
+          <button type="submit" class="btn-primary">Send</button>
+        </form>
+        <p class="muted small">
+          Default mode is a deterministic rule-based responder (instant, offline, always accurate on the math).
+          AI Mode adds free-form chat using a small open-source model running entirely in your browser via
+          <a href="https://github.com/mlc-ai/web-llm" target="_blank" rel="noopener">WebLLM</a> — no server, no API key,
+          nothing ever leaves your machine. Requires a WebGPU-capable browser (recent Chrome/Edge).
+        </p>
+      </div>
+    </section>
+
+    <!-- ===================== ABOUT TAB ===================== -->
+    <section id="tab-about" class="tab-panel">
+      <div class="panel">
+        <h2>About this tribute</h2>
+        <p>
+          Every number in this tool — the rendering-rate table, the texture bands, the confirmed
+          cook methods — is transcribed directly from Steve Gow's own
+          <a href="https://smoketrailsbbq.com/brisket-holding-masterclass-and-tenderness-model/" target="_blank" rel="noopener">Brisket Holding Masterclass (And Tenderness Model)</a>
+          article and the spreadsheet he published alongside it. Nothing here is invented.
+        </p>
+        <p>
+          Steve built the model from real experiments: rendering beef tendons (nearly pure collagen)
+          at controlled temperatures until tender, fitting the results to an Arrhenius-style first-order
+          reaction curve, then validating it against dozens of real brisket cooks. The core idea —
+          <strong>collagen rendering is exponential with temperature, and the hold is part of the cook,
+          not just a rest</strong> — is entirely his.
+        </p>
+        <p>Where to find the real thing:</p>
+        <ul>
+          <li><a href="https://smoketrailsbbq.com/" target="_blank" rel="noopener">Smoke Trails BBQ</a> — Steve's website, recipes, and rubs</li>
+          <li><a href="https://smoketrailsbbq.com/brisket-holding-masterclass-and-tenderness-model/" target="_blank" rel="noopener">The original article</a> — full write-up, the live comment thread, and the downloadable spreadsheet</li>
+          <li><a href="https://www.youtube.com/watch?v=lplpPCU5UNQ&t=1203s" target="_blank" rel="noopener">"The Science of Brisket Tenderness (And Perfect Hold Time)"</a> — Steve's video walkthrough of the model</li>
+          <li><a href="https://www.youtube.com/@SmokeTrailsBBQ" target="_blank" rel="noopener">Smoke Trails BBQ on YouTube</a></li>
+        </ul>
+        <p class="muted small">
+          This project is an unofficial, non-commercial fan tribute and is not affiliated with or
+          endorsed by Steve Gow or Smoke Trails BBQ. Please support the original with a visit to the
+          site above.
+        </p>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p>
+        Fan tribute to <a href="https://smoketrailsbbq.com/" target="_blank" rel="noopener">Steve Gow / Smoke Trails BBQ</a>.
+        Source on <a href="https://github.com/" id="repo-link" target="_blank" rel="noopener">GitHub</a>.
+      </p>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <script type="module" src="assets/js/ui.js"></script>
+</body>
+</html>
