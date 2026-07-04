@@ -1,16 +1,15 @@
-// chatbot-llm.js -- optional "AI Mode": a real open-source LLM running
+// chatbot-llm.js -- the chat's only brain: a real open-source LLM running
 // entirely in the browser via WebGPU, using WebLLM (MLC-AI). No server, no
-// API key, nothing leaves the user's machine. Lazy-loaded only when the
-// user explicitly clicks "Enable AI Mode", since the model weights are a
-// meaningful download (hundreds of MB to ~1.3GB depending on choice).
+// API key, nothing leaves the user's machine.
 //
-// The LLM is only used for free-form conversation/persona flavor. Any
-// message the deterministic rule-based responder (chatbot-rules.js) can
-// already answer confidently is handled there instead -- we never let the
-// LLM compute a rendering percentage itself, since language models are
-// unreliable at arithmetic and this is a food-safety-adjacent tool.
+// Numeric questions are grounded with a deterministic fact first (see
+// grounding.js, which reuses the same tested calculator engine as the
+// Python port) so answers about rendering rates / hold times / percent
+// done are computed, not guessed by the LLM. The LLM only handles
+// conversational framing and anything outside that computable set.
 
 import { MODEL, credit } from "./model.js";
+import { extractGroundedFact } from "./grounding.js";
 
 let engine = null;
 let loadedModelId = null;
@@ -24,12 +23,6 @@ function buildSystemPrompt() {
   const rates = MODEL.rendering_rates
     .map((r) => `${r.temp_f}F = ${r.percent_per_hour}%/hr`)
     .join(", ");
-  const methods = MODEL.confirmed_methods
-    .map(
-      (m) =>
-        `~${m.hours_on_smoker_plus_minus_2}hr smoker -> ${m.pull_temp_f}F (${m.pull_texture}), hold ${m.hold_temp_f}F x ${m.hold_time_hours}hr`
-    )
-    .join("; ");
 
   return [
     `You are a fan-made tribute chatbot inspired by "${c.method_name}" by ${c.author} (${c.source}).`,
@@ -40,11 +33,12 @@ function buildSystemPrompt() {
     `Rendering rate table (% collagen rendered per hour, at internal temp): ${rates}. Below 135F, rendering is ~0.`,
     `Texture bands by cumulative Percent Done: <80% Underdone, 80-95% Slightly Underdone, 95-110% PERFECTLY TENDER`,
     `(the target range), 110-120% Slightly Over, >120% Overdone/risk of mushy.`,
-    `Steve's confirmed real-world methods: ${methods}.`,
     `Food safety: ${MODEL.food_safety_note}`,
-    `IMPORTANT: you are not reliable at precise arithmetic. For any specific numeric calculation (total percent`,
-    `done, hours needed, etc.) tell the user to use the calculator tab on this page instead of computing it`,
-    `yourself, or only give rough ballpark language ("roughly", "in the neighborhood of").`,
+    `IMPORTANT: you are not reliable at precise arithmetic. Sometimes a "COMPUTED FACT" system message will be`,
+    `included alongside the user's question -- it was calculated by a real deterministic calculator, not by you.`,
+    `When present, treat it as ground truth and build your reply around those exact numbers. When absent and the`,
+    `user asks something numeric, only give rough ballpark language ("roughly", "in the neighborhood of") and be`,
+    `upfront that it's an estimate -- never state a precise-sounding percent or hour count you computed yourself.`,
     `Always credit Steve Gow / Smoke Trails BBQ (${c.article_url}) if asked where this comes from.`,
   ].join(" ");
 }
@@ -56,7 +50,7 @@ function buildSystemPrompt() {
 export async function initAIMode(modelId, onProgress) {
   if (!isWebGPUSupported()) {
     throw new Error(
-      "This browser doesn't expose WebGPU, so in-browser AI Mode isn't available. Try a recent desktop Chrome or Edge."
+      "This browser doesn't expose WebGPU, so the chat can't run here. Try a recent desktop Chrome or Edge."
     );
   }
   if (engine && loadedModelId === modelId) {
@@ -81,17 +75,20 @@ export function isAIModeReady() {
 }
 
 /**
- * Ask the loaded LLM a free-form question, with the model's data baked
- * into the system prompt and recent chat history for context.
+ * Ask the loaded LLM a question. Runs the deterministic grounding check
+ * first; if it recognizes a computable question, the computed fact is
+ * injected as extra system context so the reply is numerically accurate.
  * history: [{role: "user"|"assistant", content: string}, ...]
  */
 export async function aiAnswer(userMessage, history = []) {
   if (!engine) {
-    throw new Error("AI Mode isn't loaded yet.");
+    throw new Error("The model isn't loaded yet.");
   }
+  const groundedFact = extractGroundedFact(userMessage);
   const messages = [
     { role: "system", content: buildSystemPrompt() },
     ...history.slice(-8),
+    ...(groundedFact ? [{ role: "system", content: groundedFact }] : []),
     { role: "user", content: userMessage },
   ];
   const reply = await engine.chat.completions.create({
