@@ -6,7 +6,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { extractGroundedFact } from "../assets/js/grounding.js";
+import { extractGroundedFact } from "../docs/assets/js/grounding.js";
 
 test("rate lookup captures full number, not last digit", () => {
   const fact = extractGroundedFact("what's the rendering rate at 190?");

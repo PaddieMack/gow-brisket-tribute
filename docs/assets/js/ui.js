@@ -1,9 +1,9 @@
 // ui.js -- wires up the DOM: tabs and the Ask Steve chat (gated behind a
-// real loading status bar; chat is disabled until the model finishes
-// loading). No calculator UI here on purpose -- Steve's own site already
-// has one; see the About tab.
+// status bar). With inference now server-side (Cloudflare Workers AI via
+// our own Pages Function), "loading" is just a quick reachability check
+// instead of a multi-hundred-MB in-browser model download.
 
-import { initAIMode, aiAnswer, isWebGPUSupported } from "./chatbot-llm.js";
+import { aiAnswer, checkBackendReady } from "./chatbot-api.js";
 
 // ---------- Tabs ----------
 document.querySelectorAll(".tab-btn").forEach((btn) => {
@@ -16,7 +16,7 @@ document.querySelectorAll(".tab-btn").forEach((btn) => {
     btn.classList.add("is-active");
     btn.setAttribute("aria-selected", "true");
     document.getElementById(`tab-${btn.dataset.tab}`).classList.add("is-active");
-    if (btn.dataset.tab === "chat") ensureModelLoaded();
+    if (btn.dataset.tab === "chat") ensureBackendReady();
   });
 });
 
@@ -31,16 +31,11 @@ const progressFillEl = document.getElementById("ai-progress-fill");
 
 const history = [];
 let loadState = "idle"; // idle | loading | ready | error
-let loadedFor = null;
-
-function setProgress(fraction) {
-  progressFillEl.style.width = `${Math.max(0, Math.min(1, fraction)) * 100}%`;
-}
 
 function setChatEnabled(enabled) {
   chatInput.disabled = !enabled;
   chatSendBtn.disabled = !enabled;
-  chatInput.placeholder = enabled ? "e.g. I pulled at 195 and held at 150 for 14 hours, is it done?" : "Loading model before chat is enabled…";
+  chatInput.placeholder = enabled ? "e.g. I pulled at 195 and held at 150 for 14 hours, is it done?" : "Connecting…";
 }
 
 function appendMessage(who, text) {
@@ -52,49 +47,39 @@ function appendMessage(who, text) {
   return div;
 }
 
-async function ensureModelLoaded() {
-  const modelId = aiModelSelect.value;
-  if (loadState === "ready" && loadedFor === modelId) return;
-  if (loadState === "loading") return;
-
-  if (!isWebGPUSupported()) {
-    loadState = "error";
-    setProgress(0);
-    aiStatusEl.textContent =
-      "Your browser doesn't support WebGPU, so this chat can't run here. Try a recent desktop Chrome or Edge.";
-    setChatEnabled(false);
-    return;
-  }
+async function ensureBackendReady() {
+  if (loadState === "ready" || loadState === "loading") return;
 
   loadState = "loading";
   setChatEnabled(false);
-  aiModelSelect.disabled = true;
-  setProgress(0);
-  aiStatusEl.textContent = "Loading model… this can take a while on first run (downloads once, then caches).";
+  progressFillEl.classList.add("indeterminate");
+  aiStatusEl.classList.remove("clickable-retry");
+  aiStatusEl.textContent = "Connecting to Steve's brain…";
 
   try {
-    await initAIMode(modelId, ({ progress, text }) => {
-      setProgress(progress);
-      aiStatusEl.textContent = text || `Loading… ${Math.round(progress * 100)}%`;
-    });
+    await checkBackendReady();
     loadState = "ready";
-    loadedFor = modelId;
-    setProgress(1);
-    aiStatusEl.textContent = `Ready (${modelId}). Ask away.`;
+    progressFillEl.classList.remove("indeterminate");
+    progressFillEl.style.width = "100%";
+    aiStatusEl.textContent = "Ready. Ask away.";
     setChatEnabled(true);
     chatInput.focus();
   } catch (err) {
     loadState = "error";
-    aiStatusEl.textContent = `Couldn't load the model: ${err.message}`;
+    progressFillEl.classList.remove("indeterminate");
+    progressFillEl.style.width = "0%";
+    aiStatusEl.textContent = `Couldn't reach the chat backend: ${err.message}. Click to retry.`;
+    aiStatusEl.classList.add("clickable-retry");
     setChatEnabled(false);
-  } finally {
-    aiModelSelect.disabled = false;
   }
 }
 
-aiModelSelect.addEventListener("change", () => {
-  loadState = "idle";
-  ensureModelLoaded();
+// Clicking the status text retries a failed connection.
+aiStatusEl.addEventListener("click", () => {
+  if (loadState === "error") {
+    loadState = "idle";
+    ensureBackendReady();
+  }
 });
 
 chatForm.addEventListener("submit", async (e) => {
@@ -109,7 +94,7 @@ chatForm.addEventListener("submit", async (e) => {
   const thinkingBubble = appendMessage("Steve", "...thinking...");
   setChatEnabled(false);
   try {
-    const reply = await aiAnswer(msg, history);
+    const reply = await aiAnswer(msg, history, aiModelSelect.value);
     thinkingBubble.innerHTML = `<span class="who">Steve</span>${reply.replace(/</g, "&lt;")}`;
     history.push({ role: "assistant", content: reply });
   } catch (err) {
@@ -121,9 +106,9 @@ chatForm.addEventListener("submit", async (e) => {
 });
 
 // If the chat tab is already the active one on load (it's the default),
-// start loading right away instead of waiting for a tab click.
+// start the reachability check right away instead of waiting for a click.
 if (document.getElementById("tab-chat").classList.contains("is-active")) {
-  ensureModelLoaded();
+  ensureBackendReady();
 }
 
 // ---------- Footer repo link (best effort, harmless if unknown) ----------

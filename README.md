@@ -2,8 +2,7 @@
 
 An unofficial fan tribute to **Steve Gow**'s Brisket "Cook & Hold" Tenderness
 Model, published on [Smoke Trails BBQ](https://smoketrailsbbq.com/) — a
-chatbot that runs a real open-source LLM entirely in your browser, grounded
-in his actual model.
+chatbot grounded in his actual model, answered by a real open-source LLM.
 
 > This project is not affiliated with or endorsed by Steve Gow or Smoke
 > Trails BBQ. Every fact this bot is grounded in is transcribed directly
@@ -15,6 +14,8 @@ in his actual model.
 - **YouTube channel:** [@SmokeTrailsBBQ](https://www.youtube.com/@SmokeTrailsBBQ)
 - **Rubs & shop:** [Smoke Trails BBQ Brisket Rub](https://smoketrailsbbq.com/product/smoke-trails-bbq-brisket-rub/), [General Purpose Rub](https://smoketrailsbbq.com/product/smoke-trails-bbq-lets-gow-general-purpose-rub/)
 
+**Live:** https://gow-brisket-tribute.pages.dev (also mirrored at https://paddiemack.github.io/gow-brisket-tribute/ — same frontend, same backend, see [Architecture](#architecture))
+
 ## The idea, in one sentence
 
 Collagen turns into gelatin at a rate that grows **exponentially** with
@@ -23,7 +24,7 @@ Steve built a simple "% rendered per hour" table for each 10°F zone,
 validated it against real brisket cooks, and published a spreadsheet
 calculator on his own site. This repo doesn't duplicate that calculator —
 it's a chatbot tribute that uses a tested port of the same math to ground
-an in-browser open-source LLM's answers.
+an LLM's answers.
 
 ## What's in here
 
@@ -32,69 +33,94 @@ data/rendering_model.json     canonical model data, extracted from Steve's sprea
 tools/extract_model.py        the extractor (xlsx -> JSON + a JS data module)
 python/brisket_model/         tested Python port of the math (model + calculator, no chat/CLI)
 python/tests/                 pytest suite, pinned to two of Steve's own worked examples
-assets/                       the static web app (HTML/CSS/JS) -- see below
-tests/                        Node test suite (unit tests + a full jsdom DOM integration test)
+docs/                         the static frontend (HTML/CSS/JS) -- served by both hosts, see below
+functions/api/chat.js         Cloudflare Pages Function -- proxies chat to Workers AI
+wrangler.toml                 Cloudflare Pages config (build output dir + AI binding)
+tests/                        Node test suite (unit tests + a jsdom DOM integration test, fetch mocked)
 ```
 
-### The web app (GitHub Pages ready)
+## Architecture
 
-`index.html` at the repo root is a fully static site — no build step, no
-bundler, nothing to compile. Two tabs:
+The chat used to run a small open-source model entirely in-browser via
+WebLLM/WebGPU. That kept everything private (nothing left the browser) but
+meant a multi-hundred-MB download before the first message could be sent.
+This version trades that for **near-instant responses**: inference now runs
+server-side on **Cloudflare Workers AI**, called through a small Pages
+Function (`functions/api/chat.js`) that ships with this repo. No API key is
+ever exposed to the browser — the AI binding is configured entirely
+server-side.
 
-1. **Ask Steve** — the whole point of this project. A chat interface backed
-   by a genuine **open-source LLM running entirely in your browser** via
-   [WebLLM](https://github.com/mlc-ai/web-llm) and WebGPU — no server, no
-   API key, nothing ever leaves your machine. Pick from a few small instruct
-   models (SmolLM2 360M up to Qwen2.5 1.5B).
+**Trade-off, stated plainly:** chat messages now leave the browser and are
+processed by Cloudflare to generate a reply. This is no longer a fully
+local/private chat the way the WebLLM version was.
 
-   The chat is **gated behind a real loading status bar**: the input and
-   send button stay disabled, with a progress bar and status text, until
-   the model has finished downloading and initializing. There's no
-   degraded/fallback chat mode to fall back on -- if your browser doesn't
-   support WebGPU, the status bar tells you that plainly instead of pretending
-   to work.
+One static frontend (`docs/`), two hosts:
 
-   Numeric questions (rendering rate at a temp, hours needed to hit a target
-   percent, "I pulled at 195 and held at 150 for 14 hours, is it done?") are
-   silently intercepted by a deterministic grounding layer
-   (`assets/js/grounding.js`) that computes the exact answer with the same
-   tested calculator engine as the Python port, and hands that computed fact
-   to the LLM as context. The model only supplies conversational framing —
-   it never does the arithmetic itself, so the numbers you see are
-   deterministic, not guessed.
+- **Cloudflare Pages** (`gow-brisket-tribute.pages.dev`) — same-origin, so
+  the frontend calls `/api/chat` and gets the Function directly.
+- **GitHub Pages** (`paddiemack.github.io/gow-brisket-tribute`) — a second
+  copy of the *same* `docs/` folder (GitHub Pages source is set to `/docs`).
+  The frontend calls the full Cloudflare Pages URL cross-origin; the
+  Function allow-lists that origin for CORS. No duplicated code, both hosts
+  fully functional.
 
-2. **About** — full credit and links back to the source.
+Numeric questions (rendering rate at a temp, hours needed to hit a target
+percent, "I pulled at 195 and held at 150 for 14 hours, is it done?") are
+intercepted client-side by a deterministic grounding layer
+(`docs/assets/js/grounding.js`) that computes the exact answer with the same
+tested calculator engine as the Python port, and hands that computed fact to
+the LLM as context. The model only supplies conversational framing — it
+never does the arithmetic itself, so the numbers you see are deterministic,
+not guessed. There is deliberately **no calculator UI** — Steve's own site
+already has one.
 
-There is deliberately **no calculator UI** here — Steve's own site already
-has one (see the article link above). This project is just the chatbot.
+## Deploying
 
-### Deploying to GitHub Pages
+### Cloudflare Pages (the API-serving host)
 
-Because everything lives at the repo root with a plain `index.html`, this is
-zero-config:
+```bash
+npm install
+npx wrangler login
+npx wrangler pages project create gow-brisket-tribute
+npx wrangler pages deploy docs --project-name=gow-brisket-tribute
+```
 
-1. Push this repo to GitHub.
-2. Go to **Settings → Pages**.
-3. Under "Build and deployment", set **Source: Deploy from a branch**, branch
-   **main**, folder **/ (root)**.
-4. Save. Your site will be live at `https://<user>.github.io/<repo>/`.
+`wrangler.toml` declares the Workers AI binding (`[ai] binding = "AI"`) and
+`pages_build_output_dir = "docs"`, so the Function and the AI binding both
+come along automatically — no dashboard clicking required.
 
-No GitHub Actions workflow required, since there's no build step.
+Allowed models live in an allowlist in `functions/api/chat.js` (`llama-3.2-3b-instruct`,
+`llama-3.1-8b-instruct-fp8`, `llama-3.3-70b-instruct-fp8-fast` at the time of
+writing) — check the [Workers AI model catalog](https://developers.cloudflare.com/workers-ai/models/)
+for what's current if you change these, since Cloudflare periodically adds/deprecates models.
+
+### GitHub Pages (mirror)
+
+**Settings → Pages → Deploy from a branch → `main` → `/docs`.** If you fork
+this and deploy your own Cloudflare Pages project, update `API_BASE` in
+`docs/assets/js/chatbot-api.js` and the origin allowlist in
+`functions/api/chat.js` to match your own domain.
 
 ## Running it locally
 
-Static site — just serve the folder (opening `index.html` directly also
-works, since the model data is embedded as a JS module rather than fetched):
+```bash
+python3 -m http.server 8000 --directory docs
+# visit http://localhost:8000 -- chat calls the live Cloudflare deployment
+# (add http://localhost:8000 to the CORS allowlist in functions/api/chat.js,
+# already included by default for localhost)
+```
+
+To test the Function itself locally against real Workers AI (this still
+hits your Cloudflare account and incurs normal usage):
 
 ```bash
-python3 -m http.server 8000
-# visit http://localhost:8000
+npx wrangler pages dev docs --ai=AI
 ```
 
 ### Python
 
 The Python side is just the tested math library and the spreadsheet
-extractor now (no CLI, no chatbot) — it exists so the model itself has an
+extractor (no CLI, no chatbot) — it exists so the model itself has an
 independently tested reference implementation, and so the JS port has
 something to be checked against.
 
@@ -112,37 +138,27 @@ If Steve ever publishes a new version of the calculator spreadsheet:
 python3 tools/extract_model.py path/to/Holding-chart-with-Calculator.xlsx
 ```
 
-This rewrites `data/rendering_model.json`, `assets/data/rendering_model.json`,
-and `assets/js/data.generated.js` from the workbook's actual cells — nothing
-is hand-typed, so the Python package and the web app can never silently
-drift from the source.
+This rewrites `data/rendering_model.json`, `docs/assets/data/rendering_model.json`,
+and `docs/assets/js/data.generated.js` from the workbook's actual cells —
+nothing is hand-typed, so the Python package and the web app can never
+silently drift from the source.
 
 ### JavaScript
 
 ```bash
 npm install
-npm test     # unit tests for model.js + grounding.js, plus a jsdom integration test
+npm test     # unit tests for model.js + grounding.js, plus a jsdom integration test (fetch mocked, offline)
 ```
-
-## Why an in-browser open-source LLM instead of an API?
-
-GitHub Pages only serves static files — there's no backend to hold an API
-key safely. Running a small open-source model (Llama 3.2, Qwen2.5, SmolLM2,
-etc.) client-side via WebGPU means the chat works on a purely static site,
-for free, with nothing to configure and nothing to leak. The tradeoff is a
-one-time model download (hundreds of MB to ~1.3GB depending on which one you
-pick) and a WebGPU-capable browser (recent desktop Chrome/Edge) — that's
-exactly what the loading status bar is gating against.
 
 ## Why keep a calculator engine if there's no calculator UI?
 
-The chat still needs to answer numeric questions correctly, and small LLMs
-are unreliable at arithmetic. So the tested calculator (ported to both
-Python and JS from Steve's spreadsheet) stays in the codebase as a
-**grounding engine**: before the LLM sees a numeric question, a deterministic
-extractor computes the real answer and injects it as context, so the LLM's
-reply states a computed number instead of a guessed one. It's invisible to
-the user — there's only ever one chat experience — but it's why the answers
+The chat still needs to answer numeric questions correctly, and LLMs are
+unreliable at arithmetic. So the tested calculator (ported to both Python
+and JS from Steve's spreadsheet) stays in the codebase as a **grounding
+engine**: before the LLM sees a numeric question, a deterministic extractor
+computes the real answer and injects it as context, so the LLM's reply
+states a computed number instead of a guessed one. It's invisible to the
+user — there's only ever one chat experience — but it's why the answers
 that matter are deterministic under the hood.
 
 ## Data provenance

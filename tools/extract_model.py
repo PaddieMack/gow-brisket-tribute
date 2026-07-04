@@ -19,7 +19,8 @@ Run:
     python3 tools/extract_model.py path/to/workbook.xlsx
 Writes:
     data/rendering_model.json
-    assets/data/rendering_model.json   (copy, for the static web app)
+    docs/assets/data/rendering_model.json   (copy, for the static web app)
+    docs/assets/js/data.generated.js        (JS module, for the static web app)
 """
 from __future__ import annotations
 
@@ -37,8 +38,8 @@ except ImportError:  # pragma: no cover
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_OUT = REPO_ROOT / "data" / "rendering_model.json"
-WEB_COPY_OUT = REPO_ROOT / "assets" / "data" / "rendering_model.json"
-WEB_JS_OUT = REPO_ROOT / "assets" / "js" / "data.generated.js"
+WEB_COPY_OUT = REPO_ROOT / "docs" / "assets" / "data" / "rendering_model.json"
+WEB_JS_OUT = REPO_ROOT / "docs" / "assets" / "js" / "data.generated.js"
 
 SOURCE_ARTICLE_URL = (
     "https://smoketrailsbbq.com/brisket-holding-masterclass-and-tenderness-model/"

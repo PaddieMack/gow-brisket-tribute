@@ -11,7 +11,7 @@ import {
   workedExample,
   documentedCaseStudies,
   evaluate,
-} from "../assets/js/model.js";
+} from "../docs/assets/js/model.js";
 
 test("rateAtTemp zone matches table", () => {
   assert.equal(rateAtTemp(135, "zone"), 0);

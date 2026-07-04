@@ -1,0 +1,6 @@
+name = "gow-brisket-tribute"
+compatibility_date = "2026-07-04"
+pages_build_output_dir = "docs"
+
+[ai]
+binding = "AI"
